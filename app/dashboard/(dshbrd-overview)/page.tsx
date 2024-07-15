@@ -5,7 +5,9 @@ import { Suspense } from 'react';
 import { RevenueChartSkeleton, LatestInvoicesSkeleton, CardSkeleton } from '@/app/ui/skeletons'
 import CardWrapper from '@/app/ui/dashboard/cards';
 
-export const experimental_ppr = true    //now all the static content, including the fallback content inside Suspense will  be pre rendred as static content
+//PPR
+export const experimental_ppr = true
+//now all the static content, including the fallback content inside Suspense will  be pre rendred as static content
 // and dynamic content will be rendered when the user requests them 
 
 const Page = async () => {

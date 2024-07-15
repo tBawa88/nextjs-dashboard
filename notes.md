@@ -148,7 +148,7 @@ Instead fetching and rendering at build time, it is done at request time. Meanin
 **Partial Pre Redering** : It's experimental, first introduced in Nextjs14. Combines Static and Dynamic content into one single route. 
 - In this approach, a **Static Route Shell** is rendered which has **holes** in it where dynamic content can load asynchronously. 
 - The async holes are streamed in parallel, reducing overall load time of the page 
-- This approach also makes use of the Suspense component provided by React. The Suspense's fallback content is embedded into the initial HTML along with other Static content. 
+- This approach **also** makes use of the Suspense component provided by React. The Suspense's fallback content is embedded into the initial HTML along with other Static content. 
 - Then all the Static content is Pre-rendered to create this 'static shell'. When the user requests that particular route, they're first served this static shell while the data for dynamic holes is fetched in the background 
 
 ### Implementing PPR
@@ -167,3 +167,39 @@ Instead fetching and rendering at build time, it is done at request time. Meanin
 **And that's it.** //now all the static content, including the fallback content inside Suspense will  be pre rendred as static content
 // and dynamic content will be rendered when the user requests them 
 
+
+## Adding Search and Pagination - /dashboard/invoices route
+(useSearchParams, usePathname, useRouter)
+
+### Invoice Search 
+- When the user searches for some invoice, we're going to update the URL search params. Using URL search params has couple of benefits (Shareable and Bookmarkable URLs, Analytics and Tracking of User behabvour)
+- **useSearchParams** allows you to extract query params in the form of keys and values
+- **usePathname** returns the current route path
+- **useRouter** is used for navigation on client side, programmatically
+
+**STEPS** :
+1. Make the search.tsx component a client component
+2. Capture user input using onchange event handler  
+3. Update the current url with that value
+4. Update the table  to reflect the search query
+
+1. Capturing user's input: Since the <Search /> component is a client component, we use **useSearchParams** hook for getting access to the current url's search params values
+3. Then we're creating a new search param object using **new URLSeachParam** which is a web api function used to create and manipulate. 
+4. For debouncing, use 'useDebounceCallback()' hook from 'useDebounce' library, which delays the executiong of handleInputChange() function untill the last keystroke
+5. To Update the current url programmatically, we use `const {replace} = useRouter()` hook. `replace('updated url')`
+6. Inside dashboard page, extract the search params, by making the page component accepting a seachParam pop. (since it's a server component, it will automatically have access to the current url parms)
+
+```ts
+    const handleSearch = useDebouncedCallback((term: string) => {
+    const params = new URLSearchParams(searchParams)  // URLSearchParams is a web api, let's you create a new searchparam instance and manipulate it's keys
+    if (term.trim() !== '') {
+      params.set('query', term.trim())
+      // console.log(params.toString()) //query="term"
+    } else {
+      params.delete('query')
+    }
+    //updates the url without loading, using client side routing form Next
+    replace(`${pathname}?${params.toString()}`)
+  }, 400)
+
+```
