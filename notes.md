@@ -114,4 +114,31 @@ Instead fetching and rendering at build time, it is done at request time. Meanin
   - Request time info : like Cookies and url search parameters. Since server doesn't know these things in advance 
 
 
+## Streaming 
+![Streaming route components](image-1.png)
+- It is a technique where instead of waiting for all components, that rely on some async operation, to render all at once, we render them individually as soon as their async operation is finished
+- In out context, let's say the data fetching for **LatestInvoice** component finishes first. Instead of waiting for other components we render it immidiately.
+- This way user can interact with the parts of the page that have been loaded, instead of blocking the whole page. 
 
+**2 ways** : 1.Add a loading.tsx page, for page level streaming.   2.Use **Suspense** component for component level streaming
+
+### Streaming using Loading page
+- Imported the pre made skeletons for dashboard page and rendering it inside the loading.tsx file
+- Nextjs will automatically render this file as soon as the routes that belong to /dashboard enter into a loading state.
+- NOTE: to make sure that this loading state is only applied to the dasboard and not other routes in the /dashboard group, make another folder with rout group naming `(overview)`
+- And move page.tsx and loading.tsx that belong to dashboard folder, into this new folder. This makes sure that this loading.tsx file is local to /dashboard route and not /dasboard/anythingElse
+
+## Streaming Components - Suspense api
+- Suspense allows you to defer the rendering of component untill the data is fetched. It also accepts a fallback prop, which is another JSX component that can be rendered while the data is being fetched.
+- In our context, instead of fetching revenue in dashboard page, we're now fetching it inside RevenueChart component. And using Suspense to show some fallback content while fetching is in loading state
+```tsx
+   <Suspense fallback={<RevenueChartSkeleton />}>
+      <RevenueChart />
+  </Suspense>
+```
+**Setting Suspense boundaries** 
+- Most common pattern is to move the data fetching down to the component that needs it and then wrap that component inside Suspense and render some fallback skeleton or other loading state.
+- Whole page loading are also fine, but sometimes, one component's loading can slow down the loading of entire page. 
+
+## Partial Pre-rendering (PPR) 
+- Combining Static and Dynamic rendering and Streaming  in the same route
