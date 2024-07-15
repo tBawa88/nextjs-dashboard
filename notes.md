@@ -203,3 +203,26 @@ Instead fetching and rendering at build time, it is done at request time. Meanin
   }, 400)
 
 ```
+
+## Mutating data
+### Server actions
+- Async functions that we can run directly on the server. They eliminate the need to create API endpoints. Instead we can create these async functions and invoke then directly inside either a server component or a client component
+- For a function to become a server action, it must be async, and it must have 'use server' directive as the first line in the function body
+- A form can be used to trigger a server action, we just need to pass in the function to the action attribute of the normal html form. 
+- Server action will automatically receive the formData object 
+```ts
+  export default function Page() {
+  // Action
+  async function create(formData: FormData) {
+    'use server';
+ 
+    // Logic to mutate data...
+  }
+ 
+  // Invoke the action using the "action" attribute
+  return <form action={create}>...</form>;
+}
+```
+- Benefit of submitting forms using server actions is that forms will keep working even if the client side javascript isn't loaded or CS javascript is disabled
+- In **Nextjs**, with server actions, not only can we mutate the server data, but we can also update the cached data using cache revalidation `revalidatePath(path, 'page')`
+- 
