@@ -1,8 +1,5 @@
-## Next.js App Router Course - Starter
+## Next.js App Router Course 
 
-This is the starter template for the Next.js App Router Course. It contains the starting code for the dashboard application.
-
-For more information, see the [course curriculum](https://nextjs.org/learn) on the Next.js Website.
 ### Chapter 2 - CSS and styling
 1. To add global css to the project, import the global.css file into the root layout.tsx file. This allows tailwing utility classes to be applied to our entire app.
 2. Another way applying styles is to use CSS modules. Classes created in one module.css files are given unique identifiers to prevent conflicts. 
@@ -36,10 +33,18 @@ Note: All the images that are in public folder will be statically served therfor
 - This is also called **Partial rendering**
 - The layout.tsx file that is on the topmost level of /app is called root layout. It is used to modify the tags like html, body and add metadata for better SEO
 
-## Chapter - 5 Links 
+### Chapter - 5 Links 
 - `import Link from 'next/link`
 - This component is used to give the website a SPA feel. (no full page refresh between routes)
 - Next does something called code splitting by route segements. Meaning each page becomes isolated. 
 - In production, whenever a <Link> component comes into viewport, Nextjs **pre-fetches** the data of that page in background. Which makes the page transition 'near instant' 
 **Showing active links** : `import {usePathname} from 'next/navigation `
     - `const pathname = usePathname()` The value returned by this hook can be compared with the href value of each link tag, to apply conditional classes to it
+
+### Connecting To DB
+- Created a postgres database from vercel's dashboard. It uses Neon.tech under the hood. 
+- Then obtain the database URIs and other secret keys from .env.local tab which is found under storage tab
+- Put those into the .env file
+- app/seed directory contains a route.ts file, which contains an endpoint to seed the database
+- They're using '@vercel/postgres' package to connect with the DB which is using node-postgres package under the hood
+- You can also use an ORM like prisma 
