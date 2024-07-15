@@ -142,3 +142,28 @@ Instead fetching and rendering at build time, it is done at request time. Meanin
 
 ## Partial Pre-rendering (PPR) 
 - Combining Static and Dynamic rendering and Streaming  in the same route
+- Content that does not rely on any data fetching and is commong to all users can be made static (example Sidenav). They're usually placed inside the layout.tsx file
+- Content that changes often and is personalized according to each user is put inside dynamic components.
+
+**Partial Pre Redering** : It's experimental, first introduced in Nextjs14. Combines Static and Dynamic content into one single route. 
+- In this approach, a **Static Route Shell** is rendered which has **holes** in it where dynamic content can load asynchronously. 
+- The async holes are streamed in parallel, reducing overall load time of the page 
+- This approach also makes use of the Suspense component provided by React. The Suspense's fallback content is embedded into the initial HTML along with other Static content. 
+- Then all the Static content is Pre-rendered to create this 'static shell'. When the user requests that particular route, they're first served this static shell while the data for dynamic holes is fetched in the background 
+
+### Implementing PPR
+1. Enable PPR from next.congif.mjs file 
+```ts
+  const nextConfig = {
+    experimental : {
+        ppr : 'incremental'
+    }
+};
+```
+2. Then choose a route in which you want this option enabeled. And add export this variable from that route's page.tsx file
+```ts
+  export const experimental_ppr = true;
+```
+**And that's it.** //now all the static content, including the fallback content inside Suspense will  be pre rendred as static content
+// and dynamic content will be rendered when the user requests them 
+
