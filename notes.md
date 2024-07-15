@@ -1,3 +1,4 @@
+
 ### Chapter 2 - CSS and styling
 1. To add global css to the project, import the global.css file into the root layout.tsx file. This allows tailwing utility classes to be applied to our entire app.
 2. Another way applying styles is to use CSS modules. Classes created in one module.css files are given unique identifiers to prevent conflicts. 
@@ -31,10 +32,86 @@ Note: All the images that are in public folder will be statically served therfor
 - This is also called **Partial rendering**
 - The layout.tsx file that is on the topmost level of /app is called root layout. It is used to modify the tags like html, body and add metadata for better SEO
 
-## Chapter - 5 Links 
+### Chapter - 5 Links 
 - `import Link from 'next/link`
 - This component is used to give the website a SPA feel. (no full page refresh between routes)
 - Next does something called code splitting by route segements. Meaning each page becomes isolated. 
 - In production, whenever a <Link> component comes into viewport, Nextjs **pre-fetches** the data of that page in background. Which makes the page transition 'near instant' 
 **Showing active links** : `import {usePathname} from 'next/navigation `
     - `const pathname = usePathname()` The value returned by this hook can be compared with the href value of each link tag, to apply conditional classes to it
+
+### Connecting To DB
+- Created a postgres database from vercel's dashboard. It uses Neon.tech under the hood. 
+- Then obtain the database URIs and other secret keys from .env.local tab which is found under storage tab
+- Put those into the .env file
+- app/seed directory contains a route.ts file, which contains an endpoint to seed the database
+- They're using '@vercel/postgres' package to connect with the DB which is using node-postgres package under the hood
+- You can also use an ORM like prisma 
+
+## Fetching data 
+- For data fetching and interact with DB we can either create an **API layer** or Directly fetch data inside **Server components**. 
+- Server component functions can be made async, therfore we can await database queries inside them
+- Never place the code that interacts with DB (business logic) inside client components since all client side code is exposed to the end user. 
+
+## Database queries 
+- Two ways to query the DB 
+1. Using SQL (using some JS sql library and writing pure SQL queries) 
+2. Using an ORM (prisma, drizzle)   even these orms generate sql under the hood. 
+
+## Vercel Postgress SDK-  [@vercel/postgress](https://vercel.com/docs/storage/vercel-postgres/sdk) 
+- It is compatible with the "pg" (node-postgress) library and provides different ways to interact with the DB
+**sql (recommended)** **db** **createclient()** 
+
+## sql 
+```ts
+    import {sql} from '@vercel/postgres'
+    const likes = 10
+    const {rows} = sql`
+    SELECT *
+    FROM posts
+    WHERE likes > ${likes}
+    `
+```
+- The **sql** is a tag function. Meaning we can't call it like an normal function using parentheses, instead it accepts a string template literal which contains sql code.
+- To prevent **sql injections**, this string is converted into a postgres parameterized query by this "sql" function behing the scenes  
+- Another thing to be noted here is that we don't need to explicitly connect with the databse using the connection string. 'sql' function will automatically pick up the process.env.POSTGRES_URL
+- NOTE: All the data fetching code is located in /app/lib/data.ts
+- NOTE: /app/lib/definitions.ts file is defining the shape of data that we expect to come out of a DB query. When using ORMs, defining types like this is not needed. 
+
+## Request Waterfalls
+```ts
+    const revenue = await fetchRevenue()
+    const latestInvoices = await fetchLatestInvoices()
+    const {
+        numberOfCustomers,
+        numberOfInvoices,
+        totalPaidInvoices,
+        totalPendingInvoices,
+    } = await fetchCardData()
+```
+- Making sequential reuqests in this way creates a **request waterfall** 
+- A waterfall is a situation where one reuqest must wait untill the previous request is finished. 
+- This pattern, although usefull in some cases, can lead to significantly slow down the page load time. 
+
+## Parallel data fetching
+- One way to avoid request waterfalls is to initialize all requests at the same time instead of sequential using `const data = await Promise.all([array of promises])`
+- and access each promise's data using appropirate array index
+
+## Chapter - 8 Static and Dynamic rendering
+-  The current dashboard is static, meaning any changes to the data in DB won't reflect in this page automatically
+**Static rendering** : Data fetching and rendering happen at the server during build time, or when revalidating data. It has some beneifts like :- 
+    - Faster page loading
+    - Reduces server load (not having to refetch on every single request)
+    - Better SEO (content is already available when the page loads for the crawlers)
+
+**Cons of SSR**: Bad for situations where real time data is needed( like a personal dashboard ) Good for UI with little to no data, or data that is shared globally by all users. 
+
+### Dynamic rendering 
+Instead fetching and rendering at build time, it is done at request time. Meaning every time the user makes a request, the server will fetch the latest data for them 
+**PROS** : 
+  - Real time data 
+  - User specific content
+  - Request time info : like Cookies and url search parameters. Since server doesn't know these things in advance 
+
+
+
