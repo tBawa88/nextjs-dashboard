@@ -25,7 +25,6 @@ export default function EditInvoiceForm({
   const updateInvoiceWithId = updateInvoice.bind(null, invoice.id)  //the bind will stay as it is, first argument will still be 'id'
   const [formState, formAction] = useActionState(updateInvoiceWithId, initialState)
 
-  console.log("inside update invoice ", formState)
   return (
     <form method='POST' action={formAction}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">

@@ -332,7 +332,7 @@ export default function Error({
 ```
 - The first argument of this hook is the actual server action, and the second is initialState (how we would like the error data returned from inside the form to look)
 - it returns an array of 2 elements. The first is state (data returned by server action, which in this case is when zod validation fails)
-- 2nd element is the action function created by this hook which we now pass to the form instead of our previous action function
+- 2nd element is the dispatch function, which we now pass to the form instead of our previous action function
 
 **NOTE** : we must also modify our original action function, because now it will be invoked by useActionState() hook, and it'll be passed 2 arguments. 
 ```ts
@@ -363,3 +363,8 @@ export default function Error({
 ```
 
 ## Adding authentication
+- adding auth using **nextauth**.js library
+- using **middleware** to redirect users from protected routes
+- more use of **useActionState** to handle pending states and form errors
+
+1. Create a login route that serves a login form /login
