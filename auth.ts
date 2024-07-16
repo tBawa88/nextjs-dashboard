@@ -25,27 +25,28 @@ async function getUser(email: string) {
 //these functions will be used to sign in and sign out the user 
 export const { signIn, signOut, auth } = NextAuth({
     ...authConfig,
-    providers: [Credentials({
-        //this function either returns a User object, or return null
-        async authorize(credentials) {
-            const parsedCredentials = z
-                .object({ email: z.string().email(), password: z.string().min(6) })
-                .safeParse(credentials);
+    providers: [
+        Credentials({
+            //this function either returns a User object, or return null
+            async authorize(credentials) {
+                const parsedCredentials = z
+                    .object({ email: z.string().email(), password: z.string().min(6) })
+                    .safeParse(credentials);
 
-            if (parsedCredentials.success) {
-                const { email, password } = parsedCredentials.data
-                const existingUser = await getUser(email)
-                if (!existingUser)
-                    return null
-                const isPasswordCorrect = await bcrypt.compare(password, existingUser.password)
-                if (isPasswordCorrect) {
-                    return existingUser
+                if (parsedCredentials.success) {
+                    const { email, password } = parsedCredentials.data
+                    const existingUser = await getUser(email)
+                    if (!existingUser)
+                        return null
+                    const isPasswordCorrect = await bcrypt.compare(password, existingUser.password)
+                    if (isPasswordCorrect) {
+                        return existingUser
+                    }
                 }
-            }
-            console.log("Invalid credentials")
-            return null
-        },
-    })]
+                console.log("Invalid credentials")
+                return null
+            },
+        })]
 
 })
 

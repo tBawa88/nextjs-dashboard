@@ -368,3 +368,132 @@ export default function Error({
 - more use of **useActionState** to handle pending states and form errors
 
 1. Create a login route that serves a login form /login
+2. Create a AUTH_SECRET="" key (generate using `openssl rand -base64 32` command) and save it in .env file (don't forget to update this key in production)
+3. Create an `auth.config.ts` file and export authConfig object from there 
+```ts
+  import type { NextAuthConfig } from "next-auth"
+export const authConfig = {
+    pages: {
+        signIn: '/login'
+    },
+    callbacks: {
+        authorized({ auth, request: { nextUrl } }) {
+            const isLoggedIn = !!auth?.user 
+            const isOnDashboard = nextUrl.pathname.startsWith('/dashboard')
+            if (isOnDashboard) {
+                return isLoggedIn ? true : false
+            } else if (isLoggedIn) {
+                return Response.redirect(new URL('/dashboard', nextUrl))    
+            } else {
+                return true;
+            }
+        }
+    },
+    providers: []   
+} satisfies NextAuthConfig
+```
+- The pages option determines which route will the user be re-directed to. We provided it our own route '/login'
+- The authorized function in callbacks object, is used to actually check if the user is logged in or not. We can call this function from inside our middleware.ts file
+
+4. Protect routes using middleware 
+```ts
+  import {Nextauth} from 'next-auth'
+  import {authConfig} from './auth.config' 
+  export default NextAuth(authConfig).auth;
+
+  //optional
+  export const config = {
+     matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)']
+   }
+```
+- Nextauth(authConfig).auth;  :: will trigger the authorized function we defined in callback object 
+- From inside this file, we can optionally export a config object wich a 'matcher' property. This makes sure that middleware is only run for certain routes
+
+5. Password hashing
+- we're using bcrypt for password hashing, therefore we must create another separate file where we will put our actual login logic using Credentials provider
+
+6. Create a new file called auth.ts
+```ts
+   import NextAuth from "next-auth";
+   import { authConfig } from "./auth.config";
+   import Credentials from 'next-auth/providers/credentials'
+   import { z } from 'zod'
+   import { sql } from "@vercel/postgres";
+   import { User } from "./app/lib/definitions";  //this is just for asserting the data being retruned by sql function
+   import bcrypt from 'bcrypt'
+
+   export const {} = NextAuth({
+    ...authConfig,
+    provider : [Credentials({
+        async authorize (credentials) {
+          //1. Parse them using zod
+          //2. Query database for existing email
+          //3. Match password hash with provided password using bcrypt
+        }
+    })]
+   })
+```
+- This authorize() function is different from the one we defined inside 'callbacks' property
+- The provider array accepts a lot of auth proivders like google, github etc. Credentials provider means we will use our own "form" and employ or own auth logic
+
+7. Create a new Server action for authentication
+```ts
+  
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
+ 
+// ...
+ 
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);  //must await the signin since it's got async code in it that queryies the DB
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
+}
+```
+- This function is importing the signIn funtion returned by NextAuth() invocation
+- then passing the formdata directly to this signin function
+- if signin fails, the signin function throws an error which is an instance of AuthError class
+
+8. Use this server action inside login form component
+```tsx
+  import {authenticate } from '@/app/lib/action'
+  const [errorMessage, formAction, isPending] = useActionState(authenticate, null)
+  //errorMessage is storing data returned by authenticate action (string | null)
+  //formACtion = dispatcher
+  //isPending = boolean, represents a request being made 
+
+  return <form action={formAction}> 
+```
+
+9. Add Signout functionality
+- wrap the signout button inside a form
+- provide an action to the form that directly calls the 'signOut' functoin
+
+```tsx
+  import {signOut} from '@/auth'
+
+  //....
+  return <form action={() => {
+    'use server'
+    await signout()
+  }}>
+
+    <button>Signout</button>
+  </form>
+
+```
+- notice how we directly defined a server action inside the action prop of form and called signout
+- It will redirect user to the page that we specified while definign the authConfig objec (signIn : '/login')
