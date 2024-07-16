@@ -316,3 +316,50 @@ export default function Error({
     notFount()
   }
 ```
+
+## Server side form validation + useActionState() hook for displaying error messages on UI 
+
+**useActionState()** hook from 'react' must be used in a 'client side component'
+```tsx
+   const initialState: State = { message: null, errors: {} }
+
+  const [formState, formAction] = useActionState(createInvoice, initialState)
+
+  console.log(formState)
+  return (
+    <form method='POST' action={formAction}>
+  )
+```
+- The first argument of this hook is the actual server action, and the second is initialState (how we would like the error data returned from inside the form to look)
+- it returns an array of 2 elements. The first is state (data returned by server action, which in this case is when zod validation fails)
+- 2nd element is the action function created by this hook which we now pass to the form instead of our previous action function
+
+**NOTE** : we must also modify our original action function, because now it will be invoked by useActionState() hook, and it'll be passed 2 arguments. 
+```ts
+  export const createInvoice = async (prevState: State, formData: FormData) => {
+
+    const result = ZodSchema.safeParse(Object.fromEntries(formData))
+    if(!result.success){
+      return {
+        message : "Failed to create an invoice",
+        errors : result.error.flatten().fieldErrors   //this creates an object with different fields, and they values being an array of string which describe the error type 
+      }
+    }
+
+    //we cannot access the data from result.data untill we place a type-guard above it and return some data incase of an error
+    const {customerId} = result.data
+
+  }
+
+  //We're expecting the data returned from the server action to look like this
+  type State = {
+    message? : string,
+    errors ? : {
+      customerId?: string[]
+    amount? : string[]
+    //...
+    }
+  }
+```
+
+## Adding authentication

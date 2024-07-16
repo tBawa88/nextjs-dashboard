@@ -5,25 +5,47 @@ import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation';
 
+export type State = {
+    errors?: {
+        customerId?: string[];
+        amount?: string[];
+        status?: string[];
+    };
+    message?: string | null;
+};
+
 const InvoiceSchema = z.object({
     id: z.string(),
-    customerId: z.string(),
-    amount: z.coerce.number(),
-    status: z.enum(['pending', 'paid']),
+    customerId: z.string({
+        invalid_type_error: "Please select a customer"
+    }),
+    amount: z.coerce.number().gt(0, { message: "The amount must be greater 0 " }),
+    status: z.enum(['pending', 'paid'], {
+        invalid_type_error: "Please select a valid invoice status"
+    }),
     date: z.string()
 })
 
 const CreateInvoice = InvoiceSchema.omit({ id: true, date: true })
 const UpdateInvoice = InvoiceSchema.omit({ id: true, date: true });
 
-export const createInvoice = async (formData: FormData) => {
+
+
+export const createInvoice = async (prevState: State, formData: FormData) => {
 
     const rawFormData = Object.fromEntries(formData)
-    const { customerId, amount, status } = CreateInvoice.parse(rawFormData)
+    const result = CreateInvoice.safeParse(rawFormData)
     const date = new Date().toISOString().split('T')[0]
 
     //Handle failed validations before sending data to database
+    if (!result.success) {
+        return {
+            errors: result.error.flatten().fieldErrors,
+            message: "Missing fields. Failed to create invoice "
+        }
+    }
 
+    const { customerId, amount, status } = result.data
     try {
         const result = await sql`
           INSERT INTO invoices
@@ -34,20 +56,27 @@ export const createInvoice = async (formData: FormData) => {
         console.log(result.rows)
     } catch (error) {
         console.log("Error creating a new invoice ", error)
-        return { message: "Error creating an invoice " }
+        return { message: "Database Error: Failed to create an invoice " }
     }
     revalidatePath('/dashboard/invoices', 'page')
     redirect('/dashboard/invoices')
 }
 
 
-export const updateInvoice = async (id: string, formdata: FormData) => {
+export const updateInvoice = async (id: string, prevState: State, formdata: FormData) => {
     const rawFormData = Object.fromEntries(formdata)
-    const { customerId, amount, status } = UpdateInvoice.parse(rawFormData)
+    const result = UpdateInvoice.safeParse(rawFormData)
     const date = new Date().toISOString().split('T')[0]
 
     //Handle failed validations before sending data to DB
+    if (!result.success) {
+        return {
+            message: "Missing Fields: Failed to update the invoice",
+            errors: result.error.flatten().fieldErrors
+        }
+    }
 
+    const { customerId, amount, status } = result.data
     try {
         const invoice = await sql`
      UPDATE invoices
