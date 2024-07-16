@@ -225,4 +225,94 @@ Instead fetching and rendering at build time, it is done at request time. Meanin
 ```
 - Benefit of submitting forms using server actions is that forms will keep working even if the client side javascript isn't loaded or CS javascript is disabled
 - In **Nextjs**, with server actions, not only can we mutate the server data, but we can also update the cached data using cache revalidation `revalidatePath(path, 'page')`
-- 
+```ts
+  'use server'
+  export const updateInvoice = async (id: string, formdata: FormData) => {
+    const rawFormData = Object.fromEntries(formdata)
+    const { customerId, amount, status } = UpdateInvoice.parse(rawFormData)
+    const date = new Date().toISOString().split('T')[0]
+
+    const result = await sql`
+    UPDATE invoices
+    SET customer_id = ${customerId}, amount = ${amount.toFixed(0)}, status = ${status}
+    WHERE id = ${id}
+  `;
+    console.log(result.rows)
+    revalidatePath('/dashboard/invoices', 'page')
+    redirect('/dashboard/invoices')
+}
+```
+- The file that contains server action must have React's **'use server'** directive as the first line
+- Every function defined in this file must be async
+- By default, the form only passes formdata object to this action function and we can't pass other data like the "id" as shown in this updateInvoice() action
+- For this we have to use Javascript's .bind() method to pass in additional parameters
+```tsx
+  import {updateInvoice} from 'actions'
+  const updateInvoiceWithID =  updateInvoice.bind(null, id )
+  <form action={updateInvoiceWithID}>
+```  
+- With this the first argument that'll be passed to updateInvoice will be the 'id', and second argument will be the 'formData' object
+
+## Error Handling in Nextjs
+- try/catch inside server actions
+- error.tsx file to display an error state on the frontend
+- notFound() function and not-found.tsx file to displaying invalid route paths
+
+### adding try/catch
+- wrap the async code that is running a sql query into try/catch
+- inside catch block, return an object with a message field inside it describing the error. This message will be used to display the error on the frontend
+- place the reavalidation and redirect functions outside try catch, this makes sure that they're only invoked if the query successfully comes out of the try block.
+- If thrown errors are not caught properly inside server actions, they cause the application to crash
+- This is where **error.tsx** file comes in.
+- Used to define an error boundary (a component that catches 'Javascript errors' anywhere inside it's child component tree)
+- Serves as a catch all, and is used to display a fallback UI incase an error is throw inside the route.
+- IF the current route does not have a dedicated error.tsx file, Next will look up the heirarchy(parent routes) untill it finds one.
+
+```tsx
+  'use client';
+ 
+import { useEffect } from 'react';
+ 
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    // Optionally log the error to an error reporting service
+    console.error(error);
+  }, [error]);
+ 
+  return (
+    <main className="flex h-full flex-col items-center justify-center">
+      <h2 className="text-center">Something went wrong!</h2>
+      <button
+        className="mt-4 rounded-md bg-blue-500 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-400"
+        onClick={
+          // Attempt to recover by trying to re-render the invoices route
+          () => reset()
+        }
+      >
+        Try again
+      </button>
+    </main>
+  );
+}
+```
+- error.tsx needs to be a client component. So that it can catch errors that occur on client side during hydration
+- it accepts 2 props that are automatically passed down to it. An error prop and a reset function prop
+- reset function 'resets' the route from which this error originated 
+
+### Handling 404 errors with not found 
+- for example a fake id of invoice that does not exist inside our database. /dashboard/invoices/'fakeID'/edit
+- `import {notFound} from 'next/navigation'`
+- Inside /dashboard/invoice/uuid/edit route, we're making a fetching data from the backend, if the id is fake, it will return an undefined data type
+- We can place an if check, and programmatically trigger the render the not-found.tsx file
+```ts
+  const invoice = await fetchInvoiceWithId(params.id)
+  if(!invoice){
+    notFount()
+  }
+```

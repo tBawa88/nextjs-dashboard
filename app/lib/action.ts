@@ -24,13 +24,18 @@ export const createInvoice = async (formData: FormData) => {
 
     //Handle failed validations before sending data to database
 
-    const result = await sql`
-        INSERT INTO invoices
-            (customer_id, amount, status, date) 
-        VALUES 
-            (${customerId}, ${amount}, ${status}, ${date})
-    `
-    console.log(result.rows)
+    try {
+        const result = await sql`
+          INSERT INTO invoices
+              (customer_id, amount, status, date) 
+          VALUES 
+              (${customerId}, ${amount}, ${status}, ${date})
+      `
+        console.log(result.rows)
+    } catch (error) {
+        console.log("Error creating a new invoice ", error)
+        return { message: "Error creating an invoice " }
+    }
     revalidatePath('/dashboard/invoices', 'page')
     redirect('/dashboard/invoices')
 }
@@ -43,20 +48,31 @@ export const updateInvoice = async (id: string, formdata: FormData) => {
 
     //Handle failed validations before sending data to DB
 
-    const result = await sql`
-    UPDATE invoices
-    SET customer_id = ${customerId}, amount = ${amount.toFixed(0)}, status = ${status}
-    WHERE id = ${id}
-  `;
-    console.log(result.rows)
+    try {
+        const invoice = await sql`
+     UPDATE invoices
+     SET customer_id = ${customerId}, amount = ${amount.toFixed(0)}, status = ${status}
+     WHERE id = ${id}
+   `;
+        console.log("Invoice found in DB ", invoice.rows)
+    } catch (error) {
+        console.log("Error updating the invoice ", error)
+        return { message: "Error updating the invoice " }
+    }
     revalidatePath('/dashboard/invoices', 'page')
     redirect('/dashboard/invoices')
 }
 
 export const deleteInvoice = async (id: string) => {
-    const result = await sql`
-        DELETE FROM invoices WHERE id=${id}
-    `
-    console.log(result.rows)
-    revalidatePath('/dashboard/invoices', 'page')
+    throw new Error("Fake error deleting the invoice ")
+    try {
+        const result = await sql`
+            DELETE FROM invoices WHERE id=${id}
+        `
+        console.log(result.rows)
+        revalidatePath('/dashboard/invoices', 'page')
+    } catch (error) {
+        console.log("Error deleting the invoice ", error)
+        return { message: "Error deleting the invoice " }
+    }
 }
