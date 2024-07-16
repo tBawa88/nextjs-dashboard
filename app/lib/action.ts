@@ -64,7 +64,6 @@ export const updateInvoice = async (id: string, formdata: FormData) => {
 }
 
 export const deleteInvoice = async (id: string) => {
-    throw new Error("Fake error deleting the invoice ")
     try {
         const result = await sql`
             DELETE FROM invoices WHERE id=${id}
